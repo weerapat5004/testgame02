@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🕵️‍♂️ เปิดแผ่นป้าย ทายภาพ - เกมการศึกษาสำหรับเด็ก</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Prompt -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700;800;900&display=swap">
+    <!-- FontAwesome for Cute Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+            min-height: 100vh;
+            user-select: none;
+            overflow-x: hidden;
+        }
+
+        /* 3D Toy Button & Card Styles */
+        .btn-3d {
+            transition: all 0.1s ease;
+            box-shadow: 0px 8px 0px 0px rgba(0, 0, 0, 0.2);
+            position: relative;
+            top: 0;
+        }
+        .btn-3d:hover {
+            transform: translateY(-2px);
+            box-shadow: 0px 10px 0px 0px rgba(0, 0, 0, 0.2);
+        }
+        .btn-3d:active {
+            transform: translateY(6px);
+            box-shadow: 0px 2px 0px 0px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 3D Container Shadow */
+        .box-3d {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.08), inset 0 2px 4px rgba(255, 255, 255, 0.8);
+        }
+
+        /* 3D Flip Card Scene */
+        .grid-container {
+            perspective: 1000px;
+        }
+
+        .flip-card {
+            background-color: transparent;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            box-shadow: 0 6px 0 rgba(0, 0, 0, 0.15);
+            border-radius: 0.75rem;
+        }
+
+        .flip-card.flipped .flip-card-inner {
+            transform: rotateY(180deg);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .flip-card-front {
+            background: linear-gradient(145deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
+            border: 3px solid #ffffff;
+            color: #d63384;
+            font-weight: 900;
+            text-shadow: 1px 1px 0px #fff;
+        }
+
+        .flip-card-back {
+            background-color: transparent;
+            transform: rotateY(180deg);
+        }
+
+        /* Floating background decoration animation */
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-12px) rotate(5deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float-reverse {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(12px) rotate(-5deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+        .animate-float-reverse {
+            animation: float-reverse 3.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.6)); }
+            50% { filter: drop-shadow(0 0 25px rgba(255, 215, 0, 1)); }
+        }
+        .glow-effect {
+            animation: pulse-glow 2s infinite;
+        }
+
+        /* Canvas Overlay for Confetti */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen justify-between items-center p-3 md:p-6 relative">
+
+    <!-- Confetti Canvas -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Floating UI Decorations -->
+    <div class="fixed top-12 left-6 text-4xl opacity-40 animate-float pointer-events-none select-none z-0">🐾</div>
+    <div class="fixed top-1/3 right-8 text-5xl opacity-40 animate-float-reverse pointer-events-none select-none z-0">⭐</div>
+    <div class="fixed bottom-16 left-10 text-5xl opacity-40 animate-float pointer-events-none select-none z-0">❓</div>
+    <div class="fixed bottom-20 right-12 text-4xl opacity-40 animate-float-reverse pointer-events-none select-none z-0">🎁</div>
+
+    <!-- Sound Control Bar (Top-Right) -->
+    <div class="w-full max-w-4xl flex justify-between items-center mb-2 z-10">
+        <div class="flex items-center gap-2 bg-white/80 backdrop-blur px-4 py-2 rounded-full shadow-md">
+            <span class="text-2xl">🕵️‍♂️</span>
+            <span class="font-bold text-gray-700 text-sm md:text-base">นักสืบน้อย</span>
+        </div>
+        <button id="btn-sound" onclick="toggleSound()" class="btn-3d bg-yellow-400 hover:bg-yellow-300 border-2 border-white text-yellow-900 font-bold px-4 py-2 rounded-full flex items-center gap-2 text-sm md:text-base shadow-md">
+            <i id="sound-icon" class="fas fa-volume-up text-lg"></i>
+            <span id="sound-text">เสียง: เปิด</span>
+        </button>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <main class="w-full max-w-3xl flex-grow flex flex-col justify-center items-center z-10">
+
+        <!-- ========================================== -->
+        <!-- 1. HOME SCREEN -->
+        <!-- ========================================== -->
+        <section id="screen-home" class="w-full flex flex-col items-center text-center py-4">
+            <!-- Game Title & Mascot Header -->
+            <div class="relative mb-6">
+                <div class="text-6xl md:text-8xl animate-float mb-2">🕵️‍♂️🔍</div>
+                <h1 class="text-3xl md:text-5xl font-black text-amber-500 drop-shadow-[0_4px_0_#ffffff] tracking-wide mb-2">
+                    เปิดแผ่นป้าย ทายภาพ
+                </h1>
+                <p class="text-gray-700 font-bold text-base md:text-lg bg-white/70 px-4 py-1 rounded-full inline-block shadow-sm">
+                    มาเป็นนักสืบน้อยไขปริศนากันเถอะ!
+                </p>
+            </div>
+
+            <!-- Category Selection Cards -->
+            <div class="w-full grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-2">
+                <!-- Category 1: Animals -->
+                <div onclick="selectCategory('animals')" class="btn-3d bg-gradient-to-b from-amber-300 to-orange-400 hover:from-amber-200 hover:to-orange-300 border-4 border-white rounded-3xl p-6 flex flex-col items-center cursor-pointer box-3d text-white">
+                    <div class="text-6xl md:text-7xl mb-3 animate-float">🐾</div>
+                    <h2 class="text-2xl md:text-3xl font-extrabold text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.3)]">หมวดสัตว์</h2>
+                    <p class="text-amber-100 text-sm mt-1 font-semibold">ทายชื่อสัตว์แสนน่ารัก 5 ชนิด</p>
+                    <div class="mt-4 bg-amber-900/30 px-4 py-1.5 rounded-full text-xs md:text-sm font-bold text-yellow-200">
+                        🏆 คะแนนสูงสุด: <span id="highscore-animals">0</span> / 50
+                    </div>
+                </div>
+
+                <!-- Category 2: Objects -->
+                <div onclick="selectCategory('objects')" class="btn-3d bg-gradient-to-b from-sky-400 to-indigo-500 hover:from-sky-300 hover:to-indigo-400 border-4 border-white rounded-3xl p-6 flex flex-col items-center cursor-pointer box-3d text-white">
+                    <div class="text-6xl md:text-7xl mb-3 animate-float-reverse">🎒</div>
+                    <h2 class="text-2xl md:text-3xl font-extrabold text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.3)]">หมวดสิ่งของ</h2>
+                    <p class="text-sky-100 text-sm mt-1 font-semibold">ทายชื่อข้าวของเครื่องใช้ 5 ชนิด</p>
+                    <div class="mt-4 bg-indigo-900/30 px-4 py-1.5 rounded-full text-xs md:text-sm font-bold text-sky-200">
+                        🏆 คะแนนสูงสุด: <span id="highscore-objects">0</span> / 50
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- 2. GAMEPLAY SCREEN -->
+        <!-- ========================================== -->
+        <section id="screen-game" class="w-full hidden flex-col items-center">
+            <!-- Header Status Bar -->
+            <div class="w-full bg-white/90 backdrop-blur rounded-2xl p-3 md:p-4 mb-4 shadow-lg border-2 border-white flex flex-wrap justify-between items-center gap-2">
+                <div class="flex items-center gap-2">
+                    <span id="game-cat-icon" class="text-2xl">🐾</span>
+                    <span id="game-cat-title" class="font-black text-gray-800 text-base md:text-lg">หมวดสัตว์</span>
+                    <span id="game-progress" class="bg-indigo-100 text-indigo-700 font-bold px-3 py-0.5 rounded-full text-xs md:text-sm border border-indigo-200">ข้อ 1/5</span>
+                </div>
+                <div class="flex gap-3">
+                    <div class="bg-amber-100 border border-amber-300 px-3 py-1 rounded-xl text-xs md:text-sm font-bold text-amber-800">
+                        คะแนนภาพนี้: <span id="current-question-score" class="text-amber-600 text-base md:text-lg">10</span>
+                    </div>
+                    <div class="bg-emerald-100 border border-emerald-300 px-3 py-1 rounded-xl text-xs md:text-sm font-bold text-emerald-800">
+                        รวม: <span id="total-score" class="text-emerald-600 text-base md:text-lg">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Picture & Tiles Puzzle Board Area -->
+            <div class="relative w-full max-w-md aspect-square bg-slate-800 rounded-3xl p-3 box-3d border-4 border-white overflow-hidden mb-4">
+                <!-- Underneath Image -->
+                <img id="puzzle-image" src="" alt="ภาพปริศนา" class="w-full h-full object-cover rounded-2xl shadow-inner select-none pointer-events-none" onerror="this.src='https://placehold.co/600x600/ffd166/333333?text=Image+Load+Error'">
+
+                <!-- 3x3 Cover Grid (9 Tiles) -->
+                <div id="tiles-grid" class="absolute inset-3 grid grid-cols-3 grid-rows-3 gap-2 grid-container">
+                    <!-- Tiles JS Generated Here -->
+                </div>
+            </div>
+
+            <!-- Answer Feedback Alert Banner -->
+            <div id="feedback-banner" class="w-full max-w-md mb-3 text-center py-2 px-4 rounded-xl font-black text-sm md:text-base hidden transition-all">
+                <!-- Dynamic feedback text -->
+            </div>
+
+            <!-- Answer Form & Actions -->
+            <div class="w-full max-w-md flex flex-col gap-2">
+                <form id="answer-form" onsubmit="handleAnswerSubmit(event)" class="flex gap-2 w-full">
+                    <input type="text" id="answer-input" placeholder="พิมพ์คำตอบที่นี่..." autocomplete="off" class="flex-grow px-4 py-3 text-base md:text-lg font-bold rounded-2xl border-4 border-indigo-200 focus:border-indigo-400 focus:outline-none shadow-inner text-gray-800 placeholder-gray-400">
+                    <button type="submit" id="btn-submit" class="btn-3d bg-emerald-500 hover:bg-emerald-400 border-2 border-white text-white font-extrabold px-5 py-3 rounded-2xl flex items-center gap-1 text-base md:text-lg shadow-md shrink-0">
+                        <span>ส่ง</span> 🚀
+                    </button>
+                </form>
+
+                <!-- Next Question Button (Hidden initially) -->
+                <button id="btn-next" onclick="nextQuestion()" class="hidden btn-3d bg-indigo-600 hover:bg-indigo-500 border-2 border-white text-white font-black text-lg md:text-xl py-3 px-6 rounded-2xl w-full shadow-lg items-center justify-center gap-2 glow-effect">
+                    <span>ภาพถัดไป</span> ➡️
+                </button>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- 3. SUMMARY / GAME OVER SCREEN -->
+        <!-- ========================================== -->
+        <section id="screen-summary" class="w-full hidden flex-col items-center text-center py-4">
+            <div class="bg-white/95 backdrop-blur rounded-3xl p-6 md:p-8 box-3d border-4 border-white w-full max-w-lg flex flex-col items-center">
+                <!-- Badge & Trophy Icon -->
+                <div class="text-7xl md:text-8xl mb-2 animate-float">🏆</div>
+                
+                <!-- Highscore Alert Flag -->
+                <div id="new-record-badge" class="hidden bg-gradient-to-r from-red-500 to-pink-500 text-white font-black px-4 py-1 rounded-full text-xs md:text-sm shadow-md animate-bounce mb-2">
+                    🎉 สถิติใหม่! (New High Score)
+                </div>
+
+                <h2 class="text-2xl md:text-3xl font-black text-gray-800 mb-1">สรุปผลการไขคดี!</h2>
+                <p id="summary-cat-title" class="text-gray-600 font-bold text-sm md:text-base mb-4">หมวดสัตว์</p>
+
+                <!-- Final Score Big Box -->
+                <div class="bg-amber-50 border-4 border-amber-300 rounded-2xl p-4 w-full mb-4 flex flex-col items-center">
+                    <span class="text-sm font-bold text-amber-800">คะแนนรวมทั้งหมด</span>
+                    <div class="text-5xl md:text-6xl font-black text-amber-500 my-1">
+                        <span id="final-score">0</span> <span class="text-2xl md:text-3xl text-gray-400">/ 50</span>
+                    </div>
+                </div>
+
+                <!-- Rank Card -->
+                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-4 w-full text-white mb-6 shadow-md">
+                    <div class="text-xs text-indigo-200 font-bold uppercase tracking-wider mb-1">ระดับฝีมือของคุณ</div>
+                    <div id="rank-title" class="text-2xl md:text-3xl font-black text-yellow-300">🏆 เซียนเปิดป้าย</div>
+                </div>
+
+                <!-- Action Buttons (3 Buttons Requirement) -->
+                <div class="flex flex-col w-full gap-3">
+                    <button onclick="restartCurrentCategory()" class="btn-3d bg-emerald-500 hover:bg-emerald-400 border-2 border-white text-white font-black py-3 px-6 rounded-2xl text-base md:text-lg w-full flex items-center justify-center gap-2">
+                        🔄 เล่นอีกครั้ง
+                    </button>
+                    <button onclick="showHome()" class="btn-3d bg-sky-500 hover:bg-sky-400 border-2 border-white text-white font-black py-3 px-6 rounded-2xl text-base md:text-lg w-full flex items-center justify-center gap-2">
+                        🗂️ เลือกหมวดอื่น
+                    </button>
+                    <button onclick="showHome()" class="btn-3d bg-slate-600 hover:bg-slate-500 border-2 border-white text-white font-black py-3 px-6 rounded-2xl text-base md:text-lg w-full flex items-center justify-center gap-2">
+                        🏠 กลับหน้าหลัก
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full text-center text-xs font-bold text-gray-600 mt-4 z-10">
+        เปิดแผ่นป้าย ทายภาพ &copy; 2026 Educational Game for Kids
+    </footer>
+
+    <!-- JS LOGIC -->
+    <script>
+        // =================================================================
+        // 1. GAME DATA STRUCTURE
+        // =================================================================
+        const GAME_DATA = {
+            animals: [
+                {
+                    id: 'a1',
+                    category: 'animals',
+                    image: 'https://images.unsplash.com/photo-1557050543-4d5f4e07ef46?auto=format&fit=crop&w=800&q=80',
+                    answer: 'ช้าง',
+                    acceptedAnswers: ["ช้าง", "ช้างไทย"]
+                },
+                {
+                    id: 'a2',
+                    category: 'animals',
+                    image: 'https://images.unsplash.com/photo-1561731216-c3a4d99437d5?auto=format&fit=crop&w=800&q=80',
+                    answer: 'เสือ',
+                    acceptedAnswers: ["เสือ", "เสือโคร่ง"]
+                },
+                {
+                    id: 'a3',
+                    category: 'animals',
+                    image: 'https://images.unsplash.com/photo-1547721064-da6cfb341d50?auto=format&fit=crop&w=800&q=80',
+                    answer: 'ยีราฟ',
+                    acceptedAnswers: ["ยีราฟ", "ยีราฟฟ์"]
+                },
+                {
+                    id: 'a4',
+                    category: 'animals',
+                    image: 'https://images.unsplash.com/photo-1598439210625-5067c578f3f6?auto=format&fit=crop&w=800&q=80',
+                    answer: 'เพนกวิน',
+                    acceptedAnswers: ["เพนกวิน", "นกเพนกวิน"]
+                },
+                {
+                    id: 'a5',
+                    category: 'animals',
+                    image: 'https://images.unsplash.com/photo-1525310072745-f49212b5ac6d?auto=format&fit=crop&w=800&q=80',
+                    answer: 'จระเข้',
+                    acceptedAnswers: ["จระเข้", "ไอ้เคี่ยม", "เคี่ยม"]
+                }
+            ],
+            objects: [
+                {
+                    id: 'o1',
+                    category: 'objects',
+                    image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=80',
+                    answer: 'โทรศัพท์มือถือ',
+                    acceptedAnswers: ["โทรศัพท์", "มือถือ", "โทรศัพท์มือถือ", "สมาร์ทโฟน"]
+                },
+                {
+                    id: 'o2',
+                    category: 'objects',
+                    image: 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=800&q=80',
+                    answer: 'จักรยาน',
+                    acceptedAnswers: ["จักรยาน", "รถจักรยาน"]
+                },
+                {
+                    id: 'o3',
+                    category: 'objects',
+                    image: 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?auto=format&fit=crop&w=800&q=80',
+                    answer: 'ร่ม',
+                    acceptedAnswers: ["ร่ม", "ร่มกันฝน"]
+                },
+                {
+                    id: 'o4',
+                    category: 'objects',
+                    image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80',
+                    answer: 'นาฬิกา',
+                    acceptedAnswers: ["นาฬิกา", "นาฬิกาข้อมือ", "นาฬิกาแขวน"]
+                },
+                {
+                    id: 'o5',
+                    category: 'objects',
+                    image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80',
+                    answer: 'กระเป๋า',
+                    acceptedAnswers: ["กระเป๋า", "กระเป๋านักเรียน", "กระเป๋าเป้"]
+                }
+            ]
+        };
+
+        // =================================================================
+        // 2. STATE MANAGEMENT VARIABLES
+        // =================================================================
+        let currentCategory = '';
+        let currentQuestions = [];
+        let currentQuestionIndex = 0;
+        let totalScore = 0;
+        let currentQuestionScore = 10;
+        let openedTilesCount = 0;
+        let soundEnabled = true;
+        let isQuestionAnswered = false;
+
+        // Web Audio Context for SFX Synthesizer
+        let audioCtx = null;
+
+        // Initialize Audio Context on user interaction
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        // Play SFX Synthesizer
+        function playSound(type) {
+            if (!soundEnabled) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'flip') {
+                // Short Wooden/Pop Click
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(120, now + 0.08);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            } 
+            else if (type === 'correct') {
+                // Major Arpeggio Success Chime
+                const freqs = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                freqs.forEach((f, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(f, now + idx * 0.08);
+                    gain.gain.setValueAtTime(0.3, now + idx * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.08 + 0.3);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + idx * 0.08);
+                    osc.stop(now + idx * 0.08 + 0.3);
+                });
+            } 
+            else if (type === 'wrong') {
+                // Error Buzzer
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.setValueAtTime(110, now + 0.15);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            }
+            else if (type === 'win') {
+                // Victory Fanfare
+                const notes = [440, 554.37, 659.25, 880];
+                notes.forEach((f, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(f, now + idx * 0.12);
+                    gain.gain.setValueAtTime(0.3, now + idx * 0.12);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.12 + 0.5);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + idx * 0.12);
+                    osc.stop(now + idx * 0.12 + 0.5);
+                });
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const soundIcon = document.getElementById('sound-icon');
+            const soundText = document.getElementById('sound-text');
+            if (soundEnabled) {
+                soundIcon.className = 'fas fa-volume-up text-lg';
+                soundText.innerText = 'เสียง: เปิด';
+            } else {
+                soundIcon.className = 'fas fa-volume-mute text-lg';
+                soundText.innerText = 'เสียง: ปิด';
+            }
+        }
+
+        // Update HighScores UI on Home Load
+        function updateHighScoresUI() {
+            const hsAnimals = localStorage.getItem('detective_hs_animals') || 0;
+            const hsObjects = localStorage.getItem('detective_hs_objects') || 0;
+            document.getElementById('highscore-animals').innerText = hsAnimals;
+            document.getElementById('highscore-objects').innerText = hsObjects;
+        }
+
+        // Screen Navigation Handlers
+        function showHome() {
+            document.getElementById('screen-home').classList.remove('hidden');
+            document.getElementById('screen-home').classList.add('flex');
+
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById('screen-game').classList.remove('flex');
+
+            document.getElementById('screen-summary').classList.add('hidden');
+            document.getElementById('screen-summary').classList.remove('flex');
+
+            updateHighScoresUI();
+        }
+
+        // Shuffle Array (Fisher-Yates)
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // Start Game with Selected Category
+        function selectCategory(cat) {
+            initAudio();
+            currentCategory = cat;
+            currentQuestions = shuffleArray(GAME_DATA[cat]);
+            currentQuestionIndex = 0;
+            totalScore = 0;
+
+            document.getElementById('screen-home').classList.add('hidden');
+            document.getElementById('screen-home').classList.remove('flex');
+
+            document.getElementById('screen-game').classList.remove('hidden');
+            document.getElementById('screen-game').classList.add('flex');
+
+            loadQuestion();
+        }
+
+        function restartCurrentCategory() {
+            selectCategory(currentCategory);
+        }
+
+        // Load Individual Question
+        function loadQuestion() {
+            const qData = currentQuestions[currentQuestionIndex];
+            isQuestionAnswered = false;
+            openedTilesCount = 0;
+            currentQuestionScore = 10;
+
+            // UI Setup
+            document.getElementById('game-cat-icon').innerText = currentCategory === 'animals' ? '🐾' : '🎒';
+            document.getElementById('game-cat-title').innerText = currentCategory === 'animals' ? 'หมวดสัตว์' : 'หมวดสิ่งของ';
+            document.getElementById('game-progress').innerText = `ข้อ ${currentQuestionIndex + 1}/${currentQuestions.length}`;
+            document.getElementById('current-question-score').innerText = currentQuestionScore;
+            document.getElementById('total-score').innerText = totalScore;
+
+            // Load Image
+            document.getElementById('puzzle-image').src = qData.image;
+
+            // Reset Forms & Buttons
+            document.getElementById('answer-input').value = '';
+            document.getElementById('answer-form').classList.remove('hidden');
+            document.getElementById('answer-input').disabled = false;
+            document.getElementById('btn-submit').disabled = false;
+            document.getElementById('btn-next').classList.add('hidden');
+            document.getElementById('btn-next').classList.remove('flex');
+
+            // Hide Feedback Banner
+            const feedback = document.getElementById('feedback-banner');
+            feedback.classList.add('hidden');
+
+            // Render 3x3 Tiles Grid
+            const tilesGrid = document.getElementById('tiles-grid');
+            tilesGrid.innerHTML = '';
+
+            for (let i = 1; i <= 9; i++) {
+                const tile = document.createElement('div');
+                tile.className = 'flip-card';
+                tile.dataset.index = i;
+                tile.innerHTML = `
+                    <div class="flip-card-inner">
+                        <div class="flip-card-front text-2xl md:text-3xl">
+                            ${i}
+                        </div>
+                        <div class="flip-card-back"></div>
+                    </div>
+                `;
+                tile.onclick = () => handleTileClick(tile);
+                tilesGrid.appendChild(tile);
+            }
+        }
+
+        // Tile Click Logic & Scoring Rule
+        function handleTileClick(tile) {
+            if (isQuestionAnswered || tile.classList.contains('flipped')) return;
+
+            // Flip Card
+            tile.classList.add('flipped');
+            playSound('flip');
+            openedTilesCount++;
+
+            // Calculate Score Logic:
+            // Initial 10 pts, minus 1 per tile opened. Min score = 1 pt.
+            currentQuestionScore = Math.max(1, 10 - openedTilesCount);
+            document.getElementById('current-question-score').innerText = currentQuestionScore;
+        }
+
+        // Open All Remaining Tiles
+        function openAllTiles() {
+            const tiles = document.querySelectorAll('.flip-card');
+            tiles.forEach(tile => {
+                if (!tile.classList.contains('flipped')) {
+                    tile.classList.add('flipped');
+                }
+            });
+        }
+
+        // Normalize Text for flexible matching
+        function normalizeText(text) {
+            return text.toString().trim().toLowerCase().replace(/\s+/g, '');
+        }
+
+        // Answer Submission
+        function handleAnswerSubmit(e) {
+            e.preventDefault();
+            if (isQuestionAnswered) return;
+
+            const inputEl = document.getElementById('answer-input');
+            const userAns = normalizeText(inputEl.value);
+
+            if (!userAns) return;
+
+            const currentQ = currentQuestions[currentQuestionIndex];
+            const isCorrect = currentQ.acceptedAnswers.some(ans => normalizeText(ans) === userAns);
+
+            const feedback = document.getElementById('feedback-banner');
+            feedback.classList.remove('hidden');
+
+            if (isCorrect) {
+                // CORRECT ANSWER
+                isQuestionAnswered = true;
+                playSound('correct');
+
+                // Update Total Score (Add only once)
+                totalScore += currentQuestionScore;
+                document.getElementById('total-score').innerText = totalScore;
+
+                // Feedback UI
+                feedback.className = 'w-full max-w-md mb-3 text-center py-2 px-4 rounded-xl font-black text-sm md:text-base bg-emerald-100 border border-emerald-400 text-emerald-800 animate-bounce';
+                feedback.innerText = `🎉 ถูกต้อง! (${currentQ.answer})`;
+
+                // Open remaining tiles
+                openAllTiles();
+
+                // Fire Confetti FX
+                triggerConfetti();
+
+                // Hide input, Show Next Button
+                document.getElementById('answer-form').classList.add('hidden');
+                const btnNext = document.getElementById('btn-next');
+                btnNext.classList.remove('hidden');
+                btnNext.classList.add('flex');
+                
+                if (currentQuestionIndex === currentQuestions.length - 1) {
+                    btnNext.innerHTML = '<span>ดูผลลัพธ์</span> 🏆';
+                } else {
+                    btnNext.innerHTML = '<span>ภาพถัดไป</span> ➡️';
+                }
+            } else {
+                // WRONG ANSWER
+                playSound('wrong');
+                feedback.className = 'w-full max-w-md mb-3 text-center py-2 px-4 rounded-xl font-black text-sm md:text-base bg-rose-100 border border-rose-400 text-rose-800';
+                feedback.innerText = '❌ ยังไม่ถูก ลองใหม่อีกครั้ง!';
+                inputEl.value = '';
+                inputEl.focus();
+            }
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < currentQuestions.length) {
+                loadQuestion();
+            } else {
+                showSummary();
+            }
+        }
+
+        // Show Summary & Calculate Rank
+        function showSummary() {
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById('screen-game').classList.remove('flex');
+
+            document.getElementById('screen-summary').classList.remove('hidden');
+            document.getElementById('screen-summary').classList.add('flex');
+
+            document.getElementById('summary-cat-title').innerText = currentCategory === 'animals' ? 'หมวดสัตว์' : 'หมวดสิ่งของ';
+            document.getElementById('final-score').innerText = totalScore;
+
+            // Determine Rank
+            let rankText = '';
+            if (totalScore >= 45) {
+                rankText = '🏆 เซียนเปิดป้าย';
+            } else if (totalScore >= 35) {
+                rankText = '🌟 นักสืบภาพมือทอง';
+            } else if (totalScore >= 25) {
+                rankText = '👍 นักทายภาพฝีมือดี';
+            } else if (totalScore >= 15) {
+                rankText = '😊 นักสังเกตฝึกหัด';
+            } else {
+                rankText = '💪 ลองใหม่อีกครั้ง';
+            }
+            document.getElementById('rank-title').innerText = rankText;
+
+            // Check High Score LocalStorage
+            const storageKey = currentCategory === 'animals' ? 'detective_hs_animals' : 'detective_hs_objects';
+            const prevHighScore = parseInt(localStorage.getItem(storageKey) || '0', 10);
+            const badge = document.getElementById('new-record-badge');
+
+            if (totalScore > prevHighScore) {
+                localStorage.setItem(storageKey, totalScore);
+                badge.classList.remove('hidden');
+                playSound('win');
+                triggerConfetti(120);
+            } else {
+                badge.classList.add('hidden');
+                playSound('win');
+                triggerConfetti(60);
+            }
+        }
+
+        // =================================================================
+        // 3. CANVAS CONFETTI EFFECT SYSTEM
+        // =================================================================
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function triggerConfetti(count = 50) {
+            const colors = ['#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    vx: (Math.random() - 0.5) * 18,
+                    vy: (Math.random() - 0.7) * 18,
+                    size: Math.random() * 8 + 6,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    rotation: Math.random() * 360,
+                    vRot: (Math.random() - 0.5) * 10,
+                    life: 1
+                });
+            }
+        }
+
+        function updateConfetti() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach((p, idx) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.3; // Gravity
+                p.rotation += p.vRot;
+                p.life -= 0.015;
+
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate((p.rotation * Math.PI) / 180);
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = Math.max(0, p.life);
+                ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                ctx.restore();
+
+                if (p.life <= 0 || p.y > canvas.height) {
+                    particles.splice(idx, 1);
+                }
+            });
+            requestAnimationFrame(updateConfetti);
+        }
+        updateConfetti();
+
+        // Initialize App on Page Load
+        window.onload = function() {
+            updateHighScoresUI();
+        };
+    </script>
+</body>
+</html>
